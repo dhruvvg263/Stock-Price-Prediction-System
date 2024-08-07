@@ -1,0 +1,120 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+import yfinance as yf
+import matplotlib.pyplot as plt
+
+# Function to fetch historical stock price data from Yahoo Finance
+def fetch_stock_data(ticker, start_date, end_date):
+    stock_data = yf.download(ticker, start=start_date, end=end_date)
+    return stock_data
+
+# Function to preprocess the stock data
+def preprocess_data(data):
+    # Extract relevant features
+    features = data[['Open', 'High', 'Low', 'Volume']]
+    # Target variable is the Close price
+    target = data['Close']
+    return features, target
+
+# Function to train a linear regression model
+def train_model(X_train, y_train):
+    model = LinearRegression()
+    model.fit(X_train, y_train)
+    return model
+
+# Function to evaluate the model
+def evaluate_model(model, X_test, y_test):
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    return mse
+
+# Function to plot historical prices and predictions
+def plot_results(stock_data, y_pred):
+    plt.figure(figsize=(10, 6))
+    plt.plot(stock_data.index, stock_data['Close'], label='Actual Close Price', color='blue')
+    plt.plot(stock_data.index, y_pred, label='Predicted Close Price', color='red')
+    plt.title('Actual vs Predicted Stock Prices')
+    plt.xlabel('Date')
+    plt.ylabel('Price')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
+# Function to perform additional analysis
+def additional_analysis(stock_data):
+    # Calculate daily returns
+    stock_data['Daily Return'] = stock_data['Close'].pct_change()
+    
+    # Calculate cumulative returns
+    stock_data['Cumulative Return'] = (1 + stock_data['Daily Return']).cumprod() - 1
+    
+    # Calculate rolling mean (moving average) of close prices
+    window = 30  # 30-day moving average
+    stock_data['Rolling Mean'] = stock_data['Close'].rolling(window).mean()
+    
+    return stock_data
+
+# Function to plot additional analysis
+def plot_additional_analysis(stock_data):
+    fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(10, 12))
+
+    # Plot daily returns
+    axes[0].plot(stock_data.index, stock_data['Daily Return'], color='green')
+    axes[0].set_title('Daily Returns')
+    axes[0].set_xlabel('Date')
+    axes[0].set_ylabel('Daily Return')
+
+    # Plot cumulative returns
+    axes[1].plot(stock_data.index, stock_data['Cumulative Return'], color='orange')
+    axes[1].set_title('Cumulative Returns')
+    axes[1].set_xlabel('Date')
+    axes[1].set_ylabel('Cumulative Return')
+
+    # Plot rolling mean
+    axes[2].plot(stock_data.index, stock_data['Close'], label='Close Price', color='blue')
+    axes[2].plot(stock_data.index, stock_data['Rolling Mean'], label='Rolling Mean', color='red')
+    axes[2].set_title('Close Price vs Rolling Mean')
+    axes[2].set_xlabel('Date')
+    axes[2].set_ylabel('Price')
+    axes[2].legend()
+
+    plt.tight_layout()
+    plt.show()
+
+# Main function
+def main():
+    # Fetch historical stock data
+    ticker = 'AAPL'  # Example: Apple stock
+    start_date = '2020-01-01'
+    end_date = '2021-01-01'
+    stock_data = fetch_stock_data(ticker, start_date, end_date)
+    
+    # Perform additional analysis
+    stock_data = additional_analysis(stock_data)
+    
+    # Preprocess the data
+    features, target = preprocess_data(stock_data)
+    
+    # Split data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(features, target, test_size=0.2, random_state=42)
+    
+    # Train the model
+    model = train_model(X_train, y_train)
+    
+    # Evaluate the model
+    mse = evaluate_model(model, X_test, y_test)
+    print("Mean Squared Error:", mse)
+
+    # Make predictions on the entire dataset
+    y_pred = model.predict(features)
+
+    # Plot results
+    plot_results(stock_data, y_pred)
+
+    # Plot additional analysis
+    plot_additional_analysis(stock_data)
+
+if _name_ == "_main_":
+    main()
